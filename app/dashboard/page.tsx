@@ -1,21 +1,31 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import UploadComponent from "../components/UploadComponent";
+import useSWR from "swr";
+
+// A simple fetcher function for SWR.
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Initialize view from URL query parameter (default to "list")
-  const initialView = searchParams.get("view") === "upload" ? "upload" : "list";
+  // Calculate initial view using useMemo to ensure consistency.
+  const initialView = useMemo(
+    () => (searchParams.get("view") === "upload" ? "upload" : "list"),
+    [searchParams]
+  );
   const [view, setView] = useState<"list" | "upload">(initialView);
 
-  // When view state changes, update the URL.
+  // Always call useSWR, regardless of the view.
+  const { data: documents, error } = useSWR("/api/documents", fetcher);
+
+  // Update the URL when view changes.
   useEffect(() => {
     if (view === "upload") {
       router.push("/dashboard?view=upload");
@@ -24,20 +34,15 @@ export default function Dashboard() {
     }
   }, [view, router]);
 
+  // Handle authentication.
   useEffect(() => {
     if (status === "unauthenticated") {
       signIn();
     }
   }, [status]);
 
+  // While session is loading, show a loading indicator.
   if (status === "loading") return <div>Loading...</div>;
-
-  // Dummy document data for the document list.
-  const documents = [
-    { title: "Document 1", uploadedOn: "2025-03-04" },
-    { title: "Document 2", uploadedOn: "2025-03-05" },
-    { title: "Document 3", uploadedOn: "2025-03-06" },
-  ];
 
   return (
     <div className="min-h-screen flex">
@@ -76,7 +81,10 @@ export default function Dashboard() {
               <p>Welcome, {session?.user?.name || session?.user?.email}!</p>
             </div>
           </div>
-          <button onClick={() => signOut()} className="bg-red-500 text-white px-4 py-2 rounded">
+          <button
+            onClick={() => signOut()}
+            className="bg-red-500 text-white px-4 py-2 rounded"
+          >
             Sign Out
           </button>
         </header>
@@ -85,21 +93,32 @@ export default function Dashboard() {
         {view === "list" ? (
           <section>
             <h2 className="text-2xl font-bold mb-4">Your Documents</h2>
-            <div className="space-y-4">
-              {documents.map((doc, index) => (
-                <div key={index} className="p-4 bg-white rounded shadow flex justify-between">
-                  <div>
-                    <p className="font-semibold">{doc.title}</p>
-                    <p className="text-sm text-gray-600">Uploaded on {doc.uploadedOn}</p>
+            {error && <div>Failed to load documents</div>}
+            {!documents ? (
+              <div>Loading documents...</div>
+            ) : (
+              <div className="space-y-4">
+                {documents.map((doc: any, index: number) => (
+                  <div
+                    key={index}
+                    className="p-4 bg-white rounded shadow flex justify-between items-center"
+                  >
+                    <div>
+                      <p className="font-semibold">{doc.docName}</p>
+                      <p className="text-sm text-gray-600">Revision: {doc.docRev}</p>
+                      <p className="text-sm text-gray-500">
+                        Uploaded on {new Date(doc.uploadedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div>
+                      <button className="mr-2 text-blue-500">Preview</button>
+                      <button className="mr-2 text-green-500">Download</button>
+                      <button className="text-red-500">Delete</button>
+                    </div>
                   </div>
-                  <div>
-                    <button className="mr-2 text-blue-500">Preview</button>
-                    <button className="mr-2 text-green-500">Download</button>
-                    <button className="text-red-500">Delete</button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
         ) : (
           <UploadComponent onUploadSuccess={() => setView("list")} />
