@@ -9,6 +9,7 @@ generator client {
 
 model Document {
   id         Int      @id @default(autoincrement())
+  docNum     String   @unique
   fileName   String
   fileUrl    String
   docName    String
