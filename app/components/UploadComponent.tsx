@@ -8,6 +8,8 @@ export type UploadComponentProps = {
 
 export default function UploadComponent({ onUploadSuccess }: UploadComponentProps) {
   const [file, setFile] = useState<File | null>(null);
+  const [docName, setDocName] = useState("");
+  const [docRev, setDocRev] = useState("");
   const [uploadStatus, setUploadStatus] = useState("");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -22,6 +24,8 @@ export default function UploadComponent({ onUploadSuccess }: UploadComponentProp
 
     const formData = new FormData();
     formData.append("document", file);
+    formData.append("docName", docName);
+    formData.append("docRev", docRev);
 
     try {
       const response = await fetch("/api/upload", {
@@ -31,6 +35,7 @@ export default function UploadComponent({ onUploadSuccess }: UploadComponentProp
       if (response.ok) {
         const data = await response.json();
         setUploadStatus("Upload successful: " + data.fileName);
+        // Wait 2 seconds then call the success callback to go back to the dashboard.
         setTimeout(() => {
           onUploadSuccess();
         }, 2000);
@@ -55,7 +60,7 @@ export default function UploadComponent({ onUploadSuccess }: UploadComponentProp
           onChange={handleFileChange}
           className="hidden"
         />
-        {/* Custom label styled as a button */}
+        {/* Custom label as a button */}
         <label
           htmlFor="fileInput"
           className="cursor-pointer inline-block px-4 py-2 mb-4 border border-gray-300 rounded-md bg-blue-500 text-white"
@@ -63,6 +68,30 @@ export default function UploadComponent({ onUploadSuccess }: UploadComponentProp
           Choose File
         </label>
         <br />
+        {/* Input for Document Name */}
+        <label className="block mb-2">
+          Document Name:
+          <input
+            type="text"
+            name="docName"
+            value={docName}
+            onChange={(e) => setDocName(e.target.value)}
+            className="block w-full p-2 border border-gray-300 rounded mt-1"
+            placeholder="Enter document name"
+          />
+        </label>
+        {/* Input for Document Revision */}
+        <label className="block mb-4">
+          Document Revision:
+          <input
+            type="text"
+            name="docRev"
+            value={docRev}
+            onChange={(e) => setDocRev(e.target.value)}
+            className="block w-full p-2 border border-gray-300 rounded mt-1"
+            placeholder="Enter document revision"
+          />
+        </label>
         <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
           Upload
         </button>
