@@ -1,0 +1,25 @@
+<svg width="200" height="150" viewBox="0 40 200 110" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Define a gradient for the folder -->
+    <linearGradient id="folderGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4F46E5" />
+      <stop offset="100%" stop-color="#3B82F6" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Blue folder shape -->
+  <path d="M20 60 H80 L90 40 H180 Q190 40 190 50 V130 Q190 140 180 140 H20 Q10 140 10 130 V70 Q10 60 20 60 Z" fill="url(#folderGradient)" />
+  
+  <!-- White notepad on the right -->
+  <rect x="125" y="50" width="60" height="80" rx="5" ry="5" fill="#ffffff" stroke="#e5e7eb" stroke-width="2"/>
+  <line x1="135" y1="80" x2="170" y2="80" stroke="#d1d5db" stroke-width="2" />
+  <line x1="135" y1="95" x2="170" y2="95" stroke="#d1d5db" stroke-width="2" />
+  <line x1="135" y1="110" x2="170" y2="110" stroke="#d1d5db" stroke-width="2" />
+
+  <!-- Left-aligned text on the blue folder -->
+  <text x="150" y="90" text-anchor="start" fill="white" font-family="Verdana, sans-serif" font-size="14" font-weight="bold">
+    <tspan x="15" dy="0">Document</tspan>
+    <tspan x="15" dy="18">Management</tspan>
+    <tspan x="15" dy="18">System</tspan>
+  </text>
+</svg>
