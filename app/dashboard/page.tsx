@@ -5,6 +5,8 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import UploadComponent from "../components/UploadComponent";
+import DocumentList, { Document } from "../components/DocumentList";
+import SummaryCards from "../components/SummaryCards";
 import useSWR from "swr";
 
 // A simple fetcher function for SWR.
@@ -13,19 +15,20 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const rawSearchParams = useSearchParams();
+  const searchParams = rawSearchParams || new URLSearchParams();
 
-  // Calculate initial view using useMemo to ensure consistency.
+  // Determine initial view from URL query parameter
   const initialView = useMemo(
     () => (searchParams.get("view") === "upload" ? "upload" : "list"),
     [searchParams]
   );
   const [view, setView] = useState<"list" | "upload">(initialView);
 
-  // Always call useSWR, regardless of the view.
-  const { data: documents, error } = useSWR("/api/documents", fetcher);
+  // Fetch documents using SWR.
+  const { data: documents, error, mutate } = useSWR<Document[]>("/api/documents", fetcher);
 
-  // Update the URL when view changes.
+  // Update URL when view state changes.
   useEffect(() => {
     if (view === "upload") {
       router.push("/dashboard?view=upload");
@@ -34,15 +37,21 @@ export default function Dashboard() {
     }
   }, [view, router]);
 
-  // Handle authentication.
+  // Ensure user is signed in.
   useEffect(() => {
     if (status === "unauthenticated") {
       signIn();
     }
   }, [status]);
 
-  // While session is loading, show a loading indicator.
   if (status === "loading") return <div>Loading...</div>;
+
+  // Calculate summary values.
+  const totalDocuments = documents ? documents.length : 0;
+  // For demo purposes, pendingApprovals is hard-coded; update as needed.
+  const pendingApprovals = 5;
+  // For recent uploads, show the count of recent documents (for example, up to 3).
+  const recentUploads = documents ? Math.min(3, documents.length) : 0;
 
   return (
     <div className="min-h-screen flex">
@@ -73,6 +82,7 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="flex-1 p-8">
+        {/* Header */}
         <header className="flex justify-between items-center mb-8">
           <div className="flex items-center">
             <img src="/dms-logo.svg" alt="DMS Logo" className="w-12 h-12 mr-4" />
@@ -89,7 +99,14 @@ export default function Dashboard() {
           </button>
         </header>
 
-        {/* Conditional Rendering based on view state */}
+        {/* Summary Cards Component */}
+        <SummaryCards
+          totalDocuments={totalDocuments}
+          pendingApprovals={pendingApprovals}
+          recentUploads={recentUploads}
+        />
+
+        {/* Conditional Rendering: Document List or Upload Component */}
         {view === "list" ? (
           <section>
             <h2 className="text-2xl font-bold mb-4">Your Documents</h2>
@@ -97,31 +114,11 @@ export default function Dashboard() {
             {!documents ? (
               <div>Loading documents...</div>
             ) : (
-              <div className="space-y-4">
-                {documents.map((doc: any, index: number) => (
-                  <div
-                    key={index}
-                    className="p-4 bg-white rounded shadow flex justify-between items-center"
-                  >
-                    <div>
-                      <p className="font-semibold">{doc.docName}</p>
-                      <p className="text-sm text-gray-600">Revision: {doc.docRev}</p>
-                      <p className="text-sm text-gray-500">
-                        Uploaded on {new Date(doc.uploadedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div>
-                      <button className="mr-2 text-blue-500">Preview</button>
-                      <button className="mr-2 text-green-500">Download</button>
-                      <button className="text-red-500">Delete</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <DocumentList documents={documents} mutate={mutate} />
             )}
           </section>
         ) : (
-          <UploadComponent onUploadSuccess={() => setView("list")} />
+          <UploadComponent onUploadSuccess={() => { setView("list"); mutate(); }} />
         )}
       </main>
     </div>
